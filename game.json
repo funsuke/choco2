@@ -1,0 +1,283 @@
+{
+	"width": 1280,
+	"height": 720,
+	"fps": 30,
+	"main": "./script/_bootstrap.js",
+	"assets": {
+		"_bootstrap": {
+			"type": "script",
+			"path": "script/_bootstrap.js",
+			"global": true
+		},
+		"main": {
+			"type": "script",
+			"path": "script/main.js",
+			"global": true
+		},
+		"parameterObject": {
+			"type": "script",
+			"path": "script/parameterObject.js",
+			"global": true
+		},
+		"nc289960": {
+			"type": "audio",
+			"path": "audio/nc289960",
+			"systemId": "sound",
+			"duration": 149400,
+			"hint": {
+				"extensions": [
+					".aac",
+					".ogg"
+				]
+			}
+		},
+		"nc301255_A4": {
+			"type": "audio",
+			"path": "audio/nc301255_A4",
+			"systemId": "sound",
+			"duration": 1568,
+			"hint": {
+				"extensions": [
+					".aac",
+					".ogg"
+				]
+			}
+		},
+		"nc301255_B4": {
+			"type": "audio",
+			"path": "audio/nc301255_B4",
+			"systemId": "sound",
+			"duration": 1568,
+			"hint": {
+				"extensions": [
+					".aac",
+					".ogg"
+				]
+			}
+		},
+		"nc301255_C4": {
+			"type": "audio",
+			"path": "audio/nc301255_C4",
+			"systemId": "sound",
+			"duration": 1568,
+			"hint": {
+				"extensions": [
+					".aac",
+					".ogg"
+				]
+			}
+		},
+		"nc301255_C5": {
+			"type": "audio",
+			"path": "audio/nc301255_C5",
+			"systemId": "sound",
+			"duration": 1568,
+			"hint": {
+				"extensions": [
+					".aac",
+					".ogg"
+				]
+			}
+		},
+		"nc301255_D4": {
+			"type": "audio",
+			"path": "audio/nc301255_D4",
+			"systemId": "sound",
+			"duration": 1568,
+			"hint": {
+				"extensions": [
+					".aac",
+					".ogg"
+				]
+			}
+		},
+		"nc301255_E4": {
+			"type": "audio",
+			"path": "audio/nc301255_E4",
+			"systemId": "sound",
+			"duration": 1568,
+			"hint": {
+				"extensions": [
+					".aac",
+					".ogg"
+				]
+			}
+		},
+		"nc301255_F4": {
+			"type": "audio",
+			"path": "audio/nc301255_F4",
+			"systemId": "sound",
+			"duration": 1568,
+			"hint": {
+				"extensions": [
+					".aac",
+					".ogg"
+				]
+			}
+		},
+		"nc301255_G4": {
+			"type": "audio",
+			"path": "audio/nc301255_G4",
+			"systemId": "sound",
+			"duration": 1568,
+			"hint": {
+				"extensions": [
+					".aac",
+					".ogg"
+				]
+			}
+		},
+		"alarm": {
+			"type": "image",
+			"path": "image/alarm.png",
+			"width": 64,
+			"height": 64
+		},
+		"area": {
+			"type": "image",
+			"path": "image/area.png",
+			"width": 1280,
+			"height": 720
+		},
+		"bg": {
+			"type": "image",
+			"path": "image/bg.png",
+			"width": 1280,
+			"height": 720
+		},
+		"blk_back": {
+			"type": "image",
+			"path": "image/blk_back.png",
+			"width": 692,
+			"height": 559
+		},
+		"block": {
+			"type": "image",
+			"path": "image/block.png",
+			"width": 672,
+			"height": 91
+		},
+		"choco": {
+			"type": "image",
+			"path": "image/choco.png",
+			"width": 500,
+			"height": 500
+		},
+		"chocola": {
+			"type": "image",
+			"path": "image/chocola.png",
+			"width": 250,
+			"height": 250
+		},
+		"fukidasi2": {
+			"type": "image",
+			"path": "image/fukidasi2.png",
+			"width": 500,
+			"height": 160
+		},
+		"number4": {
+			"type": "image",
+			"path": "image/number4.png",
+			"width": 900,
+			"height": 128
+		},
+		"number_p": {
+			"type": "image",
+			"path": "image/number_p.png",
+			"width": 600,
+			"height": 64
+		},
+		"number_w": {
+			"type": "image",
+			"path": "image/number_w.png",
+			"width": 600,
+			"height": 64
+		},
+		"point": {
+			"type": "image",
+			"path": "image/point.png",
+			"width": 64,
+			"height": 64
+		},
+		"CPanel": {
+			"type": "script",
+			"path": "script/CPanel.js",
+			"global": true
+		},
+		"CTable": {
+			"type": "script",
+			"path": "script/CTable.js",
+			"global": true
+		},
+		"define": {
+			"type": "script",
+			"path": "script/define.js",
+			"global": true
+		},
+		"blk_back2": {
+			"type": "image",
+			"path": "image/blk_back2.png",
+			"width": 792,
+			"height": 720
+		},
+		"CNumber": {
+			"type": "script",
+			"path": "script/CNumber.js",
+			"global": true
+		},
+		"block2": {
+			"type": "image",
+			"path": "image/block2.png",
+			"width": 768,
+			"height": 116
+		},
+		"chocola_anim_b": {
+			"type": "image",
+			"path": "image/chocola_anim_b.png",
+			"width": 768,
+			"height": 768
+		},
+		"chocola_anim_g": {
+			"type": "image",
+			"path": "image/chocola_anim_g.png",
+			"width": 768,
+			"height": 768
+		},
+		"chocola_anim_o": {
+			"type": "image",
+			"path": "image/chocola_anim_o.png",
+			"width": 768,
+			"height": 768
+		},
+		"chocola_anim_r": {
+			"type": "image",
+			"path": "image/chocola_anim_r.png",
+			"width": 768,
+			"height": 768
+		},
+		"chocola_anim_w": {
+			"type": "image",
+			"path": "image/chocola_anim_w.png",
+			"width": 768,
+			"height": 768
+		}
+	},
+	"moduleMainScripts": {
+		"@akashic-extension/akashic-timeline": "node_modules/@akashic-extension/akashic-timeline/lib/index.js"
+	},
+	"environment": {
+		"sandbox-runtime": "3",
+		"nicolive": {
+			"supportedModes": [
+				"ranking"
+			]
+		}
+	},
+	"globalScripts": [
+		"node_modules/@akashic-extension/akashic-timeline/lib/ActionType.js",
+		"node_modules/@akashic-extension/akashic-timeline/lib/Easing.js",
+		"node_modules/@akashic-extension/akashic-timeline/lib/Timeline.js",
+		"node_modules/@akashic-extension/akashic-timeline/lib/Tween.js",
+		"node_modules/@akashic-extension/akashic-timeline/lib/index.js"
+	]
+}
