@@ -260,6 +260,35 @@
 			"path": "image/chocola_anim_w.png",
 			"width": 768,
 			"height": 768
+		},
+		"nc274835": {
+			"type": "audio",
+			"path": "audio/nc274835",
+			"systemId": "sound",
+			"duration": 4137,
+			"hint": {
+				"extensions": [
+					".m4a",
+					".ogg"
+				]
+			}
+		},
+		"nc274836": {
+			"type": "audio",
+			"path": "audio/nc274836",
+			"systemId": "sound",
+			"duration": 3586,
+			"hint": {
+				"extensions": [
+					".m4a",
+					".ogg"
+				]
+			}
+		},
+		"CInput": {
+			"type": "script",
+			"path": "script/CInput.js",
+			"global": true
 		}
 	},
 	"moduleMainScripts": {

@@ -86,7 +86,7 @@ export function main(param: GameMainParameterObject): void {
 	const assetSE: string[] = [
 		"nc301255_C4", "nc301255_D4", "nc301255_E4",
 		"nc301255_F4", "nc301255_G4", "nc301255_A4",
-		"nc301255_B4", "nc301255_C5"];
+		"nc301255_B4", "nc301255_C5", "nc274835", "nc274836"];
 	const assetBGM: string[] = ["nc289960"];
 	// シーン
 	const scene = new g.Scene({
@@ -114,7 +114,10 @@ export function main(param: GameMainParameterObject): void {
 		/** BGM再生 */
 		if (!isDebug) {
 			scene.asset.getAudioById("nc289960").play().changeVolume(0.10);
+			// スタート音
+			scene.asset.getAudioById("nc274835").play();
 		}
+
 		/** 背景の生成追加 */
 		scene.append(new g.Sprite({ scene, src: scene.asset.getImageById("bg") }));
 

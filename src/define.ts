@@ -4,17 +4,6 @@
 export const ASPECT_RATIO: number = g.game.width / g.game.height;
 
 /**
- * 方向の定数
- */
-export enum Dir {
-	none = 0,
-	right = 1,
-	down = 2,
-	left = 4,
-	up = 8,
-};
-
-/**
  * ランダムクラス
  */
 export class Random {

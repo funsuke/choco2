@@ -3,9 +3,9 @@ import tl = require("@akashic-extension/akashic-timeline");
 // ---------------------------------------------
 // パネル用定数
 // ---------------------------------------------
-import { COLS, MovePanel, ROWS, TABLE_L, TABLE_T, Table, TableState } from "./CTable";
-import { Dir } from "./define";
+import { COLS, ROWS, TABLE_L, TABLE_T, Table, TableState } from "./CTable";
 import { Easing } from "@akashic-extension/akashic-timeline";
+import { Dir, Input } from "./CInput";
 
 // 大きさ
 // export const WIDTH: number = 112;
@@ -60,8 +60,6 @@ export class Panel extends g.FrameSprite {
 	public index: number;
 	/** テーブルオブジェクト(状態変数を参照したいため) */
 	private table: Table;
-	/** 連結方向 */
-	private chainDir: Dir;
 	/**
 	 * パネル配列の添え字から行を取得する
 	 * @param idx パネル配列の添え字
@@ -96,15 +94,6 @@ export class Panel extends g.FrameSprite {
 		return DELTA_T + MARGIN_TP * (ROWS - 1 - Panel.getRowToIdx(idx));
 	}
 	/**
-	 * 行番号,列番号からインデックスを取得
-	 * @param r 行番号
-	 * @param c 列番号
-	 */
-	static getIdxToRowCol(r: number, c: number): number {
-		if (r < 0 || c < 0) return -1;
-		return (COLS * r + c);
-	}
-	/**
 	 * パネルコンストラクタ
 	 * @param params
 	 */
@@ -116,8 +105,6 @@ export class Panel extends g.FrameSprite {
 		this.index = params.index;
 		/** テーブルオブジェクト */
 		this.table = params.table;
-		/** 連結方向 */
-		this.chainDir = Dir.none;
 		/** 入力イベントの追加 */
 		this.addEvent();
 	}
@@ -127,17 +114,17 @@ export class Panel extends g.FrameSprite {
 	// 入力方向
 	// public getInputDir(): Dir { return this.inputDir; }
 	// 入れ替えアニメーション
-	public animSwap(input: MovePanel, shouldChanging: boolean = true): void {
+	public animSwap(input: Input, dir: Dir, shouldChanging: boolean = true): void {
 		console.log("Panel::animation");
-		console.log(`    src = ${input.idxSrc}`);
-		console.log(`    dst = ${input.idxDst}`);
-		console.log(`    dir = ${input.dir}`);
+		console.log(`    src = ${input.srcIdx}`);
+		console.log(`    dst = ${input.dstIdx}`);
+		console.log(`    dir = ${dir}`);
 		/** 状態の更新 */
 		this.pState = PanelState.swapping;
 		/** 移動距離の設定 */
 		let dx: number = 0;
 		let dy: number = 0;
-		switch (input.dir) {
+		switch (dir) {
 			case Dir.right:
 				dx = MARGIN_LT;
 				break;
@@ -228,9 +215,7 @@ export class Panel extends g.FrameSprite {
 				this.pState = PanelState.stopping;
 				if (shouldChanging) {
 					this.table.tState = TableState.stopping;
-					this.table.input.idxSrc = -1;
-					this.table.input.idxDst = -1;
-					this.table.input.dir = Dir.none;
+					this.table.input
 				}
 			});
 	}
@@ -247,85 +232,83 @@ export class Panel extends g.FrameSprite {
 		// 更新イベント
 		// =============================================================
 		this.onUpdate.add(() => {
-			switch (this.pState) {
-				case PanelState.stopping:
-					break
-				case PanelState.initSwapping:
-					break;
-				case PanelState.swapping:
-					break;
-				case PanelState.falling:
-					break;
-			}
+			// switch (this.pState) {
+			// 	case PanelState.stopping:
+			// 		break
+			// 	case PanelState.initSwapping:
+			// 		break;
+			// 	case PanelState.swapping:
+			// 		break;
+			// 	case PanelState.falling:
+			// 		break;
+			// }
 		});
 		// =============================================================
 		// 移動イベント
 		// =============================================================
 		this.onPointMove.add((ev: g.PointMoveEvent) => {
-			/** 停止状態かつ色がある場合 */
-			if (this.pState === PanelState.stopping && this.frameNumber !== PanelColor.none) {
-				/** XorY方向に閾値以上動いた場合 */
-				if ((Math.abs(ev.startDelta.x) >= INPUT_THRESHOLD || Math.abs(ev.startDelta.y) >= INPUT_THRESHOLD)) {
-					this.setInputDir(ev);
-				}
-			}
+			// /** 停止状態かつ色がある場合 */
+			// if (this.pState === PanelState.stopping && this.frameNumber !== PanelColor.none) {
+			// 	/** XorY方向に閾値以上動いた場合 */
+			// 	if ((Math.abs(ev.startDelta.x) >= INPUT_THRESHOLD || Math.abs(ev.startDelta.y) >= INPUT_THRESHOLD)) {
+			// 		this.setInputDir(ev);
+			// 	}
+			// }
 		});
 	}
 
-	private pointDownFunc(ev: g.PointMoveEvent) {
-		/** 停止状態かつ色がある場合 */
-		if (this.pState === PanelState.stopping && this.frameNumber !== PanelColor.none) {
-			/** XorY方向に閾値以上動いた場合 */
-			if ((Math.abs(ev.startDelta.x) >= INPUT_THRESHOLD || Math.abs(ev.startDelta.y) >= INPUT_THRESHOLD)) {
-				this.setInputDir(ev);
-			}
-		}
-	}
+	// private pointDownFunc(ev: g.PointMoveEvent) {
+	// 	/** 停止状態かつ色がある場合 */
+	// 	if (this.pState === PanelState.stopping && this.frameNumber !== PanelColor.none) {
+	// 		/** XorY方向に閾値以上動いた場合 */
+	// 		if ((Math.abs(ev.startDelta.x) >= INPUT_THRESHOLD || Math.abs(ev.startDelta.y) >= INPUT_THRESHOLD)) {
+	// 			this.setInputDir(ev);
+	// 		}
+	// 	}
+	// }
 
 	/**
 	 * 方向の設定
 	 * @param ev ポインティング操作イベント
 	 */
-	private setInputDir(ev: g.PointMoveEvent) {
-		console.log("Panel::setInputDir");
-		console.log(`    index=${this.index}`);
-		// 
-		const input = this.table.input;
-		input.idxSrc = -1;
-		input.idxDst = -1;
-		input.dir = Dir.none;
-		//
-		const r: number = Panel.getRowToIdx(this.index);
-		const c: number = Panel.getColToIdx(this.index);
-		/** 横優先で入力処理 */
-		if (Math.abs(ev.startDelta.x) > Math.abs(ev.startDelta.y)) {
-			/** 左or右入力 */
-			if (ev.startDelta.x <= -INPUT_THRESHOLD && c > 0) {
-				input.dir = Dir.left;
-				input.idxDst = this.index - 1;
-			} else if (ev.startDelta.x >= INPUT_THRESHOLD && c < COLS - 1) {
-				input.dir = Dir.right;
-				input.idxDst = this.index + 1;
-			}
-		} else {
-			/** 下or上入力 */
-			if (ev.startDelta.y >= INPUT_THRESHOLD && r > 0) {
-				input.dir = Dir.down;
-				input.idxDst = this.index - COLS;
-			} else if (ev.startDelta.y <= -INPUT_THRESHOLD && r < ROWS - 1) {
-				input.dir = Dir.up;
-				input.idxDst = this.index + COLS;
-			}
-		}
-		console.log(`    dir=${input.dir}`);
-		/** ステート更新 */
-		if (input.dir !== Dir.none && input.idxDst !== -1) {
-			this.pState = PanelState.initSwapping;
-			/** テーブル変数 */
-			this.table.tState = TableState.swapping;
-			this.table.input.idxSrc = this.index;
-		}
-	}
+	// private setInputDir(ev: g.PointMoveEvent) {
+	// 	console.log("Panel::setInputDir");
+	// 	console.log(`    index=${this.index}`);
+	// 	// 
+	// 	const input = this.table.input;
+	// 	input.reset();
+	// 	//
+	// 	const r: number = Panel.getRowToIdx(this.index);
+	// 	const c: number = Panel.getColToIdx(this.index);
+	// 	/** 横優先で入力処理 */
+	// 	if (Math.abs(ev.startDelta.x) > Math.abs(ev.startDelta.y)) {
+	// 		/** 左or右入力 */
+	// 		if (ev.startDelta.x <= -INPUT_THRESHOLD && c > 0) {
+	// 			input.dir = Dir.left;
+	// 			input.idxDst = this.index - 1;
+	// 		} else if (ev.startDelta.x >= INPUT_THRESHOLD && c < COLS - 1) {
+	// 			input.dir = Dir.right;
+	// 			input.idxDst = this.index + 1;
+	// 		}
+	// 	} else {
+	// 		/** 下or上入力 */
+	// 		if (ev.startDelta.y >= INPUT_THRESHOLD && r > 0) {
+	// 			input.dir = Dir.down;
+	// 			input.idxDst = this.index - COLS;
+	// 		} else if (ev.startDelta.y <= -INPUT_THRESHOLD && r < ROWS - 1) {
+	// 			input.dir = Dir.up;
+	// 			input.idxDst = this.index + COLS;
+	// 		}
+	// 	}
+	// 	console.log(`    dir=${input.dir}`);
+	// 	/** ステート更新 */
+	// 	if (input.dir !== Dir.none && input.idxDst !== -1) {
+	// 		this.pState = PanelState.initSwapping;
+	// 		/** テーブル変数 */
+	// 		this.table.tState = TableState.swapping;
+	// 		this.table.input.idxSrc = this.index;
+	// 	}
+	// }
 
 	private debug() {
 		const cColor: string[] = ["無", "青", "緑", "橙", "赤", "白"];
