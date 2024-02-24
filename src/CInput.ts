@@ -93,6 +93,7 @@ export class Input {
 	}
 
 	public dstToDir(dir: Dir): void {
+
 		if (dir !== Dir.none && this.input.src.idx !== -1) {
 			// this.dst.idx = this.src.idx + (dir & 0b101) ? 1 - 2 * Number(dir === Dir.left): 
 			this.input.dir = dir;

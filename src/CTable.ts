@@ -171,10 +171,9 @@ export const TABLE_X: number = (g.game.height - (TABLE_Y + TABLE_H)) * ASPECT_RA
 
 export enum TableState {
 	stopping = 0,
-	swapping = 1,
+	erasing = 1,
 	falling = 2,
-	erasing = 3,
-	waiting = 4,		// 1回しか通らない処理後ステータス変化を待つときに使用
+	waiting = 3,		// 1回しか通らない処理後ステータス変化を待つときに使用
 }
 
 // export interface MovePanel {
@@ -246,7 +245,7 @@ const TableColor: number[] = [
  */
 export class Table extends g.E {
 	// テーブル状態
-	public tState: TableState = TableState.stopping;
+	public tState: TableState;
 	// 入力パネル
 	public input: Input;
 	// 背景
@@ -258,7 +257,9 @@ export class Table extends g.E {
 	// 選択用
 	private rectSelected: g.FilledRect;
 	// 消去用配列
-	private eraseArray: number[] = new Array<number>(COLS * ROWS);
+	private eraseArray: number[] = new Array<number>(ROWS * COLS);
+	/** 変更前配列 */
+	private before: number[] = new Array<number>(ROWS * COLS);
 
 	/**
 	 * 行と列からパネル配列のインデックスを取得する
@@ -276,6 +277,8 @@ export class Table extends g.E {
 	 */
 	constructor(scene: g.Scene, random: g.RandomGenerator) {
 		super({ scene, x: TABLE_L, y: TABLE_T, });
+		// テーブル状態
+		this.tState = TableState.waiting;
 		// ランダムクラス
 		this.random = new Random(random);
 		// 入力値
@@ -291,6 +294,8 @@ export class Table extends g.E {
 		const pane: g.Pane = this.makePane(scene);
 		// パネルの追加
 		this.makePanels(scene);
+		// beforeテーブルの設定
+		this.setBefore();
 		// パネルイベントの追加
 		this.addEvent(scene);
 		// 消去配列の初期化 ※ES6ではArray.prototype.fill()使えず
@@ -325,50 +330,21 @@ export class Table extends g.E {
 		// 更新時処理
 		// =============================================================
 		this.onUpdate.add(() => {
+			let shouldChanging: boolean = true;
 			switch (this.tState) {
 				/** 停止状態 */
 				case TableState.stopping:
+					// 消去用配列のセット・あればtrue
 					if (this.checkErase()) {
 						console.log("消去処理に入ります");
 						this.tState = TableState.erasing;
+					} else {
+						/** 連鎖の終了 */
+						this.tState = TableState.waiting;
 					}
-					// this.setInput();
-					break;
-				/** パネル移動状態 */
-				case TableState.swapping:
-					// 入力がある(成立する)場合
-					if (this.isNormalInput(this.input)) {
-						// inputDstの状態を判定
-						if (this.canMovePanel(this.input.dstIdx)) {
-							console.log("Table::onUpdate tState=swapping");
-							console.log(`    src = ${this.input.src}`);
-							console.log(`    dst = ${this.input.dst}`);
-							// debug
-							this.debug();
-							// ※配列のスワップを先に処理
-							this.dataSwap(this.input.srcIdx, this.input.dstIdx);
-							// debug
-							console.log("\ndataSwap後****************\n");
-							this.debug();
-							// 操作パネルutaのアニメーション
-							// this.input.dir = (this.input.dir << 2) % 15;
-							this.panels[this.input.srcIdx].animSwap(this.input, this.input.dirInvert, false);
-							// 移動先パネルのアニメーション　向きを反転させて処理
-							// this.input.dir = (this.input.dir << 2) % 15;
-							this.panels[this.input.dstIdx].animSwap(this.input, this.input.dir);
-							// debug
-							this.debug();
-						} else {
-							this.panels[this.input.srcIdx].pState = PanelState.stopping;
-							this.panels[this.input.dstIdx].pState = PanelState.stopping;
-						}
-					}
-					// 入力をリセット
-					this.input.reset();
 					break;
 				/** 消去処理状態 */
 				case TableState.erasing:
-					console.log("消す処理に来ました");
 					// 盤面得点計算
 					console.log("得点計算********************************");
 					flgTest = false;
@@ -392,19 +368,23 @@ export class Table extends g.E {
 					console.log(`消し[${erase}],ボ連[${chain}],ボ色[${TableColor[color]}]`)
 					this.debug();
 					// 消去アニメーション
+					shouldChanging = true;
 					for (let i = 0; i < this.eraseArray.length; i++) {
 						// 消すブロックがある場合
 						if (this.eraseArray[i] & 7) {
 							// 消去配列の消去
 							this.eraseArray[i] = 0;
 							// 画像の消去
-							this.panels[i].animErase();
+							this.panels[i].animErase(shouldChanging);
+							shouldChanging = false;
 						}
 					}
 					this.tState = TableState.waiting;
 					break;
+				/** 落下処理 */
 				case TableState.falling:
 					console.log("落ちる処理に来ました");
+					shouldChanging = true;
 					for (let c = 0; c < COLS; c++) {
 						let cntSpace = 0;
 						for (let r = 0; r < ROWS2; r++) {
@@ -419,7 +399,8 @@ export class Table extends g.E {
 										this.dataSwap(j, j - COLS);
 										this.panels[j].y = Panel.getYToIdx(j) + MARGIN_VT / 2;
 									}
-									this.panels[j].animFall(cntSpace);
+									this.panels[j].animFall(cntSpace, shouldChanging);
+									shouldChanging = false;
 								}
 							}
 						}
@@ -432,7 +413,6 @@ export class Table extends g.E {
 					}
 					this.tState = TableState.waiting;
 					break;
-				default:
 			}
 		}, this);
 		// =============================================================
@@ -441,6 +421,17 @@ export class Table extends g.E {
 		this.onPointDown.add((ev: g.PointDownEvent) => {
 			this.debug();
 		});
+	}
+
+	public isFalling(): boolean {
+		let retValue: boolean = false;
+		for (let i = 0; i < ROWS * COLS; i++) {
+			if (this.panels[i].pState === PanelState.falling) {
+				retValue = true;
+				break;
+			}
+		}
+		return retValue;
 	}
 
 	private checkErase(): boolean {
@@ -505,74 +496,31 @@ export class Table extends g.E {
 		return retValue;
 	}
 
-	private isNormalInput(i: Input): boolean {
-		return (i.srcIdx >= 0 && i.srcIdx < ROWS * COLS && i.dstIdx >= 0 && i.dstIdx < ROWS * COLS);
-	}
-
-	private canMovePanel(i: number): boolean {
+	private isNormalInput(input: Input): boolean {
 		return (
-			this.panels[i].pState === PanelState.initSwapping &&
-			this.panels[i].frameNumber !== PanelColor.none
+			input.srcIdx >= 0 && input.srcIdx < ROWS * COLS &&
+			input.dstIdx >= 0 && input.dstIdx < ROWS * COLS
 		);
 	}
 
-	private dataSwap(src: number, dst: number): void {
-		// ハンドラを事前取得
-		// const downHandlersSrc = this.panels[src].onPointDown._handlers;
-		// const downHandlersDst = this.panels[dst].onPointDown._handlers;
-		// const moveHandlersSrc = this.panels[src].onPointMove._handlers;
-		// const moveHandlersDst = this.panels[dst].onPointMove._handlers;
-		// スワップ
-		// this.panelSwap(src, dst);
-		[this.panels[src], this.panels[dst]] = [this.panels[dst], this.panels[src]];
-		// [this.panels[src], this.panels[dst]] = [this.panels[dst], this.panels[src]];
-		// [this.panels[src].index, this.panels[dst].index] = [this.panels[dst].index, this.panels[src].index];
-		// ハンドラもスワップ
-		// [this.panels[src].onPointDown._handlers, this.panels[dst].onPointDown._handlers]
-		// 	= [downHandlersDst, downHandlersSrc];
-		// [this.panels[src].onPointMove._handlers, this.panels[dst].onPointMove._handlers]
-		// 	= [moveHandlersDst, moveHandlersSrc];
-		// ？
-		// this.panels[src].modified();
-		// this.panels[dst].modified();
+	private canMovePanels(input: Input): boolean {
+		return (
+			this.canMovePanel(input.srcIdx) && this.canMovePanel(input.dstIdx)
+		);
 	}
 
-	// private panelSwap(src: number, dst: number): void {
-	// 	[this.panels[src], this.panels[dst]] = [this.panels[dst], this.panels[src]];
-	// 	[this.panels[src].index, this.panels[dst].index] = [this.panels[dst].index, this.panels[src].index];
-	// }
+	private canMovePanel(idx: number): boolean {
+		return (
+			this.panels[idx].pState === PanelState.stopping &&
+			this.panels[idx].frameNumber !== PanelColor.none
+		);
 
-	/**
-	 * 入力値をセットする
-	 */
-	// private setInput(): void {
-	// 	this.input.idx = -1;
-	// 	this.input.dir = Dir.none;
-	// 	this.input.dstIdx = -1;
-	// 	for (let i = 0; i < ARRAY_SIZE; i++) {
-	// 		if (this.panels[i].pState === PanelState.initSwapping) {
-	// 			this.input.idx = i;
-	// 			this.input.dir = this.panels[i].getInputDir();
-	// 			switch (this.input.dir) {
-	// 				case Dir.right:
-	// 					this.input.dstIdx = this.input.idx + 1;
-	// 					break;
-	// 				case Dir.down:
-	// 					this.input.dstIdx = this.input.idx - COLS;
-	// 					break;
-	// 				case Dir.left:
-	// 					this.input.dstIdx = this.input.idx - 1;
-	// 					break;
-	// 				case Dir.up:
-	// 					this.input.dstIdx = this.input.idx + COLS;
-	// 					break;
-	// 			}
-	// 			// 	
-	// 			this.tState = TableState.swapping;
-	// 			break;
-	// 		}
-	// 	}
-	// }
+	}
+
+	public dataSwap(src: number, dst: number): void {
+		// スワップ
+		[this.panels[src], this.panels[dst]] = [this.panels[dst], this.panels[src]];
+	}
 
 	/**
 	 * ペインにパネルを追加する
@@ -616,25 +564,16 @@ export class Table extends g.E {
 				}
 			}
 			this.panels[i] = this.makePanel(scene, newColor, i);
-			// if (row < 2 && col < 2) {
-			// 	this.panels[i] = this.makePanel(scene, newColor, i);
-			// } else {
-			// 	this.panels[i] = this.makePanel(scene, 0, i);
-			// }
 			// イベント
-			this.panels[i].onPointDown.add((ev: g.PointDownEvent) => {
-				// console.log("マウスボタン押下時");
-				// console.log(`index : ${i}`);
-				// console.log(`x = ${this.panels[i].x - DELTA_LEFT}`);
-				// console.log(`y = ${this.panels[i].y - DELTA_TOP}`);
-				this.rectSelected.x = this.panels[i].x - DELTA_L;
-				this.rectSelected.y = this.panels[i].y - DELTA_T;
-				this.rectSelected.show();
-				this.rectSelected.modified();
-			});
-			this.panels[i].onPointUp.add((ev: g.PointUpEvent) => {
-				this.rectSelected.hide();
-			});
+			// this.panels[i].onPointDown.add((ev: g.PointDownEvent) => {
+			// 	this.rectSelected.x = this.panels[i].x - DELTA_L;
+			// 	this.rectSelected.y = this.panels[i].y - DELTA_T;
+			// 	this.rectSelected.show();
+			// 	this.rectSelected.modified();
+			// });
+			// this.panels[i].onPointUp.add((ev: g.PointUpEvent) => {
+			// 	this.rectSelected.hide();
+			// });
 		}
 	}
 	/**
@@ -643,6 +582,12 @@ export class Table extends g.E {
 	 * @returns 画像描画エンティティ
 	 */
 	private makeBack(scene: g.Scene): g.Sprite {
+		// =============================================================
+		// 押上時処理
+		// =============================================================
+		this.back.onPointUp.add((ev: g.PointUpEvent) => {
+			this.rectSelected.hide();
+		}, this);
 		// =============================================================
 		// 押下時処理
 		// =============================================================
@@ -655,10 +600,15 @@ export class Table extends g.E {
 			if (col >= 0 && col < COLS && row >= 0 && row < ROWS) {
 				const idx = Table.getIdxToRowCol(row, col);
 				if (idx >= 0 && idx < ROWS * COLS) {
-					if (this.panels[idx].pState === PanelState.stopping) {
+					if (this.canMovePanel(idx)) {
 						this.input.src = { idx, row, col };
 					}
 				}
+				// 選択用四角
+				this.rectSelected.x = Panel.getXToIdx(idx) + WIDTH / 2;
+				this.rectSelected.y = Panel.getYToIdx(idx) + HEIGHT / 2;
+				this.rectSelected.show();
+				this.rectSelected.modified();
 			}
 		}, this);
 		// =============================================================
@@ -672,32 +622,56 @@ export class Table extends g.E {
 				if (Math.abs(ev.startDelta.x) >= INPUT_THRESHOLD) {
 					if (ev.startDelta.x >= INPUT_THRESHOLD && this.input.srcCol < COLS - 1) {
 						// 右に入力され、一番右端ではない場合
-						this.input.dstToDir(Dir.right);
+						if (this.canMovePanel(this.input.srcIdx + 1)) {
+							this.input.dstToDir(Dir.right);
+						}
 					} else if (ev.startDelta.x <= -INPUT_THRESHOLD && this.input.srcCol > 0) {
 						// 左に入力され、一番左端ではない場合
-						this.input.dstToDir(Dir.left);
+						if (this.canMovePanel(this.input.srcIdx - 1)) {
+							this.input.dstToDir(Dir.left);
+						}
 					}
 				} else if (Math.abs(ev.startDelta.y) >= INPUT_THRESHOLD) {
 					if (ev.startDelta.y >= INPUT_THRESHOLD && this.input.srcRow > 0) {
 						// 下に入力され、一番下端ではない場合
-						this.input.dstToDir(Dir.down);
+						if (this.canMovePanel(this.input.srcIdx - COLS)) {
+							this.input.dstToDir(Dir.down);
+						}
 					} else if (ev.startDelta.y <= -INPUT_THRESHOLD && this.input.srcRow < ROWS - 1) {
 						// 上に入力され、一番上端ではない場合
-						this.input.dstToDir(Dir.up);
+						if (this.canMovePanel(this.input.srcIdx + COLS)) {
+							this.input.dstToDir(Dir.up);
+						}
 					}
 				}
 				// 状態の更新
 				if (this.input.dstIdx != -1) {
-					// パネル状態
-					this.panels[this.input.srcIdx].pState = PanelState.initSwapping;
-					this.panels[this.input.dstIdx].pState = PanelState.initSwapping;
-					// テーブル状態
-					this.tState = TableState.swapping;
+					// 入力があり(成立する)、２つが動かせる場合
+					if (this.isNormalInput(this.input) && this.canMovePanels(this.input)) {
+						// // ※配列のスワップを先に処理
+						// this.dataSwap(this.input.srcIdx, this.input.dstIdx);
+						// 移動先パネルのアニメーション 向きを反転させて処理
+						this.panels[this.input.srcIdx].animSwap(this.input, this.input.dir, false);
+						// 移動元パネルのアニメーション 向きを反転させて処理
+						this.panels[this.input.dstIdx].animSwap(this.input, this.input.dirInvert, true);
+					}
+					// 入力をリセット
+					this.input.reset();
 				}
 			}
 		}, this);
 		return this.back;
 	}
+
+	private setBefore(): void {
+		// スワップ中は２つのパネルの位置の数値を０にする
+		// 消去中は消去するパネル...を０にする
+		// 落下中は下から数えて消去状態のより上は全て０にする
+		for (let i = 0; i < ROWS * COLS; i++) {
+			this.before[i] = this.panels[i].frameNumber;
+		}
+	}
+
 	/**
 	 * ペインエンティティの生成
 	 * @param scene シーン
@@ -763,7 +737,7 @@ export class Table extends g.E {
 		};
 		console.log("座標：");
 		for (let i = 0; i < ROWS2 * COLS; i++) {
-			s += `${("00" + i).slice(-3)}: (${("0" + this.panels[i].x).slice(-2)},${("00" + this.panels[i].y).slice(-3)}), `;
+			s += `${("00" + i).slice(-3)}: (${("0" + this.panels[i].x.toString(16)).slice(-2)},${("00" + this.panels[i].y.toString(16)).slice(-3)}), `;
 			if (i % COLS === COLS - 1) {
 				console.log(s);
 				s = "";
@@ -780,4 +754,3 @@ export class Table extends g.E {
 		console.log("********************************");
 	}
 }
-

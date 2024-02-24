@@ -26,8 +26,8 @@ export const DELTA_T: number = 2;
 // パネル用状態定数
 export enum PanelState {
 	stopping = 1,
-	initSwapping = 2,
-	swapping = 3,
+	swapping = 2,
+	erasing = 3,
 	falling = 4,
 };
 
@@ -93,6 +93,7 @@ export class Panel extends g.FrameSprite {
 		// return MARGIN_VT * (ROWS - 1 - Panel.getIdxToRow(idx)) - 4;
 		return DELTA_T + MARGIN_VT * (ROWS - 1 - Panel.getRowToIdx(idx));
 	}
+
 	/**
 	 * パネルコンストラクタ
 	 * @param params
@@ -114,11 +115,12 @@ export class Panel extends g.FrameSprite {
 	// 入力方向
 	// public getInputDir(): Dir { return this.inputDir; }
 	// 入れ替えアニメーション
-	public animSwap(input: Input, dir: Dir, shouldChanging: boolean = true): void {
+	public animSwap(input: Input, dir: Dir, shouldChanging: boolean): void {
 		console.log("Panel::animation");
-		console.log(`    src = ${input.srcIdx}`);
-		console.log(`    dst = ${input.dstIdx}`);
-		console.log(`    dir = ${dir}`);
+		console.log(`    src : ${input.srcIdx}`);
+		console.log(`    dst : ${input.dstIdx}`);
+		console.log(`    dir : ${dir}`);
+		console.log(`    flg : ${shouldChanging}`);
 		/** 状態の更新 */
 		this.pState = PanelState.swapping;
 		/** 移動距離の設定 */
@@ -128,26 +130,54 @@ export class Panel extends g.FrameSprite {
 			case Dir.right:
 				dx = MARGIN_HN;
 				break;
-			case Dir.down:
-				dy = MARGIN_VT
-				break;
 			case Dir.left:
 				dx = -MARGIN_HN;
+				break;
+			case Dir.down:
+				dy = MARGIN_VT
 				break;
 			case Dir.up:
 				dy = -MARGIN_VT;
 				break;
 		}
+		console.log("    dx : " + dx);
+		console.log("    dy : " + dy);
+		const srcIdx: number = input.srcIdx;
+		const dstIdx: number = input.dstIdx;
 		/** タイムライン */
-		this.makeSwapTimeline(dx, dy, shouldChanging);
+		new tl.Timeline(this.scene).create(this)
+			.moveBy(dx, dy, 333, Easing.easeInOutBack)
+			.call(() => {
+				/** パネル状態の更新 */
+				this.pState = PanelState.stopping;
+				/** テーブル状態の更新 */
+				if (shouldChanging) {
+					// アニメーション終了後データを交換
+					console.log(`    srcIdx : ${srcIdx}`);
+					console.log(`    dstIdx : ${dstIdx}`);
+					this.table.dataSwap(srcIdx, dstIdx);
+					// テーブル状態
+					if (this.table.isFalling()) {
+						this.table.tState = TableState.waiting;
+						console.log(`    waiting!`);
+					} else {
+						this.table.tState = TableState.stopping;
+						console.log(`    stopping!`);
+					}
+				} else {
+					console.log(`    none!`);
+				}
+			});
 		// this.index = input.dstIdx;
 	}
 
-	public animErase(): void {
-		// const x = TABLE_L + Panel.getXToIdx(this.index);
-		// const y = TABLE_T + Panel.getYToIdx(this.index);
-		// console.log(x);
-		// console.log(y);
+	/**
+	 * 消去アニメーション
+	 */
+	public animErase(shouldChanging: boolean): void {
+		/** 状態の設定 */
+		this.pState = PanelState.erasing;
+		/** 消去アニメーションの設定 */
 		let asset: g.ImageAsset;
 		switch (this.frameNumber) {
 			case PanelColor.blue:
@@ -185,10 +215,16 @@ export class Panel extends g.FrameSprite {
 			y: TABLE_T + DELTA_T * 2 + this.y,
 			loop: false,
 		});
+		/** アニメーション開始 */
 		animErasePanel.start();
+		/** アニメーション終了時 */
 		animErasePanel.onFinish.add(() => {
+			/** 破棄 */
 			animErasePanel.destroy();
-			this.table.tState = TableState.falling;
+			/** テーブル状態の更新 */
+			if (shouldChanging) {
+				this.table.tState = TableState.falling;
+			}
 		});
 		this.scene.append(animErasePanel);
 	}
@@ -197,122 +233,28 @@ export class Panel extends g.FrameSprite {
 	 * 落ちるアニメーション
 	 * @param {number} fallNum 落ちる個数
 	 */
-	public animFall(fallNum: number): void {
+	public animFall(fallNum: number, shouldChanging: boolean): void {
+		/** パネル状態の更新 */
 		this.pState = PanelState.falling;
+		// タイムライン
 		const y = MARGIN_VT * fallNum;
 		new tl.Timeline(this.scene).create(this)
 			.moveBy(0, y, 500, Easing.easeOutQuint)
 			.call(() => {
+				/** パネル状態の更新 */
 				this.pState = PanelState.stopping;
-				this.table.tState = TableState.stopping;
-			});
-	}
-	/**
-	 * 指定の位置に移動するタイムラインを作成
-	 * @param dx X移動距離
-	 * @param dy Y移動距離
-	 */
-	private makeSwapTimeline(dx: number, dy: number, shouldChanging: boolean = true): void {
-		new tl.Timeline(this.scene).create(this)
-			.moveBy(dx, dy, 333, Easing.easeInOutBack)
-			.call(() => {
-				this.pState = PanelState.stopping;
+				/** テーブル状態の更新 */
 				if (shouldChanging) {
 					this.table.tState = TableState.stopping;
-					this.table.input
 				}
 			});
 	}
+
 	/**
-	 * ドラッグ入力イベントの追加
+	 * イベントの追加
 	 */
 	private addEvent(): void {
-		// debug
-		this.onPointDown.add((ev: g.PointDownEvent) => {
-			console.log("Panel::onPointDown");
-			this.debug();
-		});
-		// =============================================================
-		// 更新イベント
-		// =============================================================
-		this.onUpdate.add(() => {
-			// switch (this.pState) {
-			// 	case PanelState.stopping:
-			// 		break
-			// 	case PanelState.initSwapping:
-			// 		break;
-			// 	case PanelState.swapping:
-			// 		break;
-			// 	case PanelState.falling:
-			// 		break;
-			// }
-		});
-		// =============================================================
-		// 移動イベント
-		// =============================================================
-		this.onPointMove.add((ev: g.PointMoveEvent) => {
-			// /** 停止状態かつ色がある場合 */
-			// if (this.pState === PanelState.stopping && this.frameNumber !== PanelColor.none) {
-			// 	/** XorY方向に閾値以上動いた場合 */
-			// 	if ((Math.abs(ev.startDelta.x) >= INPUT_THRESHOLD || Math.abs(ev.startDelta.y) >= INPUT_THRESHOLD)) {
-			// 		this.setInputDir(ev);
-			// 	}
-			// }
-		});
 	}
-
-	// private pointDownFunc(ev: g.PointMoveEvent) {
-	// 	/** 停止状態かつ色がある場合 */
-	// 	if (this.pState === PanelState.stopping && this.frameNumber !== PanelColor.none) {
-	// 		/** XorY方向に閾値以上動いた場合 */
-	// 		if ((Math.abs(ev.startDelta.x) >= INPUT_THRESHOLD || Math.abs(ev.startDelta.y) >= INPUT_THRESHOLD)) {
-	// 			this.setInputDir(ev);
-	// 		}
-	// 	}
-	// }
-
-	/**
-	 * 方向の設定
-	 * @param ev ポインティング操作イベント
-	 */
-	// private setInputDir(ev: g.PointMoveEvent) {
-	// 	console.log("Panel::setInputDir");
-	// 	console.log(`    index=${this.index}`);
-	// 	// 
-	// 	const input = this.table.input;
-	// 	input.reset();
-	// 	//
-	// 	const r: number = Panel.getRowToIdx(this.index);
-	// 	const c: number = Panel.getColToIdx(this.index);
-	// 	/** 横優先で入力処理 */
-	// 	if (Math.abs(ev.startDelta.x) > Math.abs(ev.startDelta.y)) {
-	// 		/** 左or右入力 */
-	// 		if (ev.startDelta.x <= -INPUT_THRESHOLD && c > 0) {
-	// 			input.dir = Dir.left;
-	// 			input.idxDst = this.index - 1;
-	// 		} else if (ev.startDelta.x >= INPUT_THRESHOLD && c < COLS - 1) {
-	// 			input.dir = Dir.right;
-	// 			input.idxDst = this.index + 1;
-	// 		}
-	// 	} else {
-	// 		/** 下or上入力 */
-	// 		if (ev.startDelta.y >= INPUT_THRESHOLD && r > 0) {
-	// 			input.dir = Dir.down;
-	// 			input.idxDst = this.index - COLS;
-	// 		} else if (ev.startDelta.y <= -INPUT_THRESHOLD && r < ROWS - 1) {
-	// 			input.dir = Dir.up;
-	// 			input.idxDst = this.index + COLS;
-	// 		}
-	// 	}
-	// 	console.log(`    dir=${input.dir}`);
-	// 	/** ステート更新 */
-	// 	if (input.dir !== Dir.none && input.idxDst !== -1) {
-	// 		this.pState = PanelState.initSwapping;
-	// 		/** テーブル変数 */
-	// 		this.table.tState = TableState.swapping;
-	// 		this.table.input.idxSrc = this.index;
-	// 	}
-	// }
 
 	private debug() {
 		const cColor: string[] = ["無", "青", "緑", "橙", "赤", "白"];
