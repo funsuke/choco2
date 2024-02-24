@@ -142,7 +142,7 @@ https://puyo-euphonic.com/puyo-word-score-calculation
 //     18  240
 //     19  256
 //     20以降 256で固定
-import { HEIGHT, MARGIN_LT, MARGIN_TP, Panel, PanelColor, PanelState, WIDTH, INPUT_THRESHOLD, DELTA_L, DELTA_T } from './CPanel';
+import { HEIGHT, MARGIN_HN, MARGIN_VT, Panel, PanelColor, PanelState, WIDTH, INPUT_THRESHOLD, DELTA_L, DELTA_T } from './CPanel';
 import { ASPECT_RATIO, Random } from "./define";
 import { Dir, Input } from './CInput';
 
@@ -405,33 +405,29 @@ export class Table extends g.E {
 					break;
 				case TableState.falling:
 					console.log("落ちる処理に来ました");
-					for (let r = 0; r < ROWS; r++) {
-						for (let c = 0; c < COLS; c++) {
+					for (let c = 0; c < COLS; c++) {
+						let cntSpace = 0;
+						for (let r = 0; r < ROWS2; r++) {
 							const i = Table.getIdxToRowCol(r, c);
-							// パネルに何もない場合
+							//
 							if (this.panels[i].frameNumber === 0) {
-								console.log("[" + i + "]は何もなかった！");
-								let flgExist: boolean = false;
-								let ni = i;
-								for (; ni < ARRAY_SIZE; ni += COLS) {
-									if (this.panels[ni].frameNumber != 0) {
-										this.dataSwap(i, ni);
-										this.panels[ni].y = this.panels[i].y;
-										flgExist = true;
-										break;
+								cntSpace++;
+							} else {
+								if (cntSpace > 0) {
+									let j = i;
+									for (; Panel.getRowToIdx(j) > 0 && this.panels[j - COLS].frameNumber === 0; j -= COLS) {
+										this.dataSwap(j, j - COLS);
+										this.panels[j].y = Panel.getYToIdx(j) + MARGIN_VT / 2;
 									}
-								}
-								// 
-								if (!flgExist) {
-									console.log("新しいパネルの生成");
-									const newColor = Math.floor(PanelColor.colors * g.game.random.generate()) + 1;
-									this.panels[i].frameNumber = newColor;
-									this.panels[i].modified();
-								} else {
-									console.log("落ちるアニメーション[" + i + "]");
-									this.panels[i].animFall(i);
+									this.panels[j].animFall(cntSpace);
 								}
 							}
+						}
+						// 補充処理
+						for (let r = ROWS2 - 1; r >= ROWS2 - cntSpace; r--) {
+							const i = Table.getIdxToRowCol(r, c);
+							this.panels[i].frameNumber = this.random.randRange(1, PanelColor.colors + 1);
+							this.panels[i].modified();
 						}
 					}
 					this.tState = TableState.waiting;
@@ -577,6 +573,7 @@ export class Table extends g.E {
 	// 		}
 	// 	}
 	// }
+
 	/**
 	 * ペインにパネルを追加する
 	 * @param pane 追加されるペイン
@@ -589,6 +586,7 @@ export class Table extends g.E {
 			}
 		}
 	}
+
 	/**
 	 * パネル配列の生成
 	 * @param scene シーン
@@ -652,8 +650,8 @@ export class Table extends g.E {
 			// 入力移動元の初期化
 			this.input.src = { idx: -1, row: -1, col: -1 };
 			// 入力移動元の設定
-			const col = Math.floor((ev.point.x - DELTA_L) / MARGIN_LT);
-			const row = ROWS - 1 - Math.floor((ev.point.y - DELTA_T) / MARGIN_TP);
+			const col = Math.floor((ev.point.x - DELTA_L) / MARGIN_HN);
+			const row = ROWS - 1 - Math.floor((ev.point.y - DELTA_T) / MARGIN_VT);
 			if (col >= 0 && col < COLS && row >= 0 && row < ROWS) {
 				const idx = Table.getIdxToRowCol(row, col);
 				if (idx >= 0 && idx < ROWS * COLS) {
@@ -708,8 +706,8 @@ export class Table extends g.E {
 	private makePane(scene: g.Scene): g.Pane {
 		return new g.Pane({
 			scene: scene,
-			width: MARGIN_LT * COLS,
-			height: MARGIN_TP * ROWS,
+			width: MARGIN_HN * COLS,
+			height: MARGIN_VT * ROWS,
 			x: 12,
 			y: 12,
 		});
@@ -747,7 +745,7 @@ export class Table extends g.E {
 		return this.random.randRange(0, PanelColor.colors) + 1;
 	}
 
-	private debug(): void {
+	public debug(): void {
 		let s: string = "";
 		const cState: string[] = ["停止", "交換", "落下", "消去"];
 		const cDir: string[] = ["無", "→", "↓", "", "←", "", "", "", "↑"];
@@ -764,8 +762,8 @@ export class Table extends g.E {
 			}
 		};
 		console.log("座標：");
-		for (let i = 0; i < ROWS * COLS; i++) {
-			s += `${("0" + i).slice(-2)}: (${("0" + this.panels[i].x).slice(-2)},${("0" + this.panels[i].y).slice(-2)}), `;
+		for (let i = 0; i < ROWS2 * COLS; i++) {
+			s += `${("00" + i).slice(-3)}: (${("0" + this.panels[i].x).slice(-2)},${("00" + this.panels[i].y).slice(-3)}), `;
 			if (i % COLS === COLS - 1) {
 				console.log(s);
 				s = "";
@@ -773,7 +771,7 @@ export class Table extends g.E {
 		};
 		console.log("消去配列：");
 		for (let i = 0; i < ROWS * COLS; i++) {
-			s += `[${("0" + i).slice(-2)}]:${this.eraseArray[i].toString(8)} `;
+			s += `[${("0" + i).slice(-2)}]:${("00" + this.eraseArray[i].toString(8)).slice(-3)} `;
 			if (i % COLS === COLS - 1) {
 				console.log(s);
 				s = "";

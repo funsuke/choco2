@@ -13,10 +13,10 @@ import { Dir, Input } from "./CInput";
 export const WIDTH: number = 128;
 export const HEIGHT: number = 116;
 // 配置の余白
-// export const MARGIN_LT: number = 84;
-// export const MARGIN_TP: number = 77;
-export const MARGIN_LT: number = 128;
-export const MARGIN_TP: number = 116;
+// export const MARGIN_HN: number = 84;
+// export const MARGIN_VT: number = 77;
+export const MARGIN_HN: number = 128;
+export const MARGIN_VT: number = 116;
 // 入力閾値
 export const INPUT_THRESHOLD: number = 50;
 // 移動値
@@ -81,8 +81,8 @@ export class Panel extends g.FrameSprite {
 	 * @returns 横位置
 	 */
 	static getXToIdx(idx: number): number {
-		// return MARGIN_LT * Panel.getIdxToCol(idx) - 8;
-		return DELTA_L + MARGIN_LT * Panel.getColToIdx(idx);
+		// return MARGIN_HN * Panel.getIdxToCol(idx) - 8;
+		return DELTA_L + MARGIN_HN * Panel.getColToIdx(idx);
 	}
 	/**
 	 * 配列の添え字から縦位置を取得する
@@ -90,8 +90,8 @@ export class Panel extends g.FrameSprite {
 	 * @returns 縦位置
 	 */
 	static getYToIdx(idx: number): number {
-		// return MARGIN_TP * (ROWS - 1 - Panel.getIdxToRow(idx)) - 4;
-		return DELTA_T + MARGIN_TP * (ROWS - 1 - Panel.getRowToIdx(idx));
+		// return MARGIN_VT * (ROWS - 1 - Panel.getIdxToRow(idx)) - 4;
+		return DELTA_T + MARGIN_VT * (ROWS - 1 - Panel.getRowToIdx(idx));
 	}
 	/**
 	 * パネルコンストラクタ
@@ -126,16 +126,16 @@ export class Panel extends g.FrameSprite {
 		let dy: number = 0;
 		switch (dir) {
 			case Dir.right:
-				dx = MARGIN_LT;
+				dx = MARGIN_HN;
 				break;
 			case Dir.down:
-				dy = MARGIN_TP
+				dy = MARGIN_VT
 				break;
 			case Dir.left:
-				dx = -MARGIN_LT;
+				dx = -MARGIN_HN;
 				break;
 			case Dir.up:
-				dy = -MARGIN_TP;
+				dy = -MARGIN_VT;
 				break;
 		}
 		/** タイムライン */
@@ -193,11 +193,15 @@ export class Panel extends g.FrameSprite {
 		this.scene.append(animErasePanel);
 	}
 
-	public animFall(idx: number): void {
+	/**
+	 * 落ちるアニメーション
+	 * @param {number} fallNum 落ちる個数
+	 */
+	public animFall(fallNum: number): void {
 		this.pState = PanelState.falling;
-		const y = this.height / 2 + Panel.getYToIdx(idx);
+		const y = MARGIN_VT * fallNum;
 		new tl.Timeline(this.scene).create(this)
-			.moveY(y, 500, Easing.easeOutQuint)
+			.moveBy(0, y, 500, Easing.easeOutQuint)
 			.call(() => {
 				this.pState = PanelState.stopping;
 				this.table.tState = TableState.stopping;

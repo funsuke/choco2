@@ -221,6 +221,7 @@ export function main(param: GameMainParameterObject): void {
 			if (time >= 0) {
 				g.game.vars.gameState.score++;
 			}
+			table.debug();
 		});
 		// =============================================================
 		// 更新ハンドラと更新処理
