@@ -68,7 +68,7 @@ import { Number } from "./CNumber";
 import { Table } from "./CTable";
 import { GameMainParameterObject } from "./parameterObject";
 
-const isDebug: boolean = true;
+const isDebug: boolean = false;
 
 /**
  * メイン
@@ -86,7 +86,7 @@ export function main(param: GameMainParameterObject): void {
 	const assetSE: string[] = [
 		"nc301255_C4", "nc301255_D4", "nc301255_E4",
 		"nc301255_F4", "nc301255_G4", "nc301255_A4",
-		"nc301255_B4", "nc301255_C5", "nc274835", "nc274836"];
+		"nc301255_B4", "nc301255_C5", "nc274835", "nc274836", "nc184298", "nc302159"];
 	const assetBGM: string[] = ["nc289960"];
 	// シーン
 	const scene = new g.Scene({
@@ -120,10 +120,6 @@ export function main(param: GameMainParameterObject): void {
 
 		/** 背景の生成追加 */
 		scene.append(new g.Sprite({ scene, src: scene.asset.getImageById("bg") }));
-
-		/** テーブルクラスの生成 */
-		const table = new Table(scene, param.random);
-		scene.append(table);
 
 		/** しょこたん */
 		scene.append(new g.Sprite({
@@ -183,6 +179,44 @@ export function main(param: GameMainParameterObject): void {
 			numScore.change();
 		});
 		scene.append(numScore);
+
+		/** テーブルクラスの生成 */
+		const table = new Table(scene, param.random, numScore);
+		scene.append(table);
+
+		/** 連鎖表示 */
+		const fukidasi = new g.Sprite({
+			scene,
+			src: scene.asset.getImageById("fukidasi2"),
+			x: 826,
+			y: 80,
+			hidden: true,
+		});
+		fukidasi.onUpdate.add(() => {
+			if (table.getCombo() > 0) {
+				numCombo.setNumber(table.getCombo());
+				numCombo.show();
+				fukidasi.show();
+			} else {
+				numCombo.hide();
+				fukidasi.hide();
+			}
+		});
+		scene.append(fukidasi);
+		// 連鎖(数字)
+		const numCombo = new Number({
+			scene: scene,
+			assetId: "number4",
+			maxDigit: 3,
+			align: "right",
+			pitch: 65,
+			anchorX: 1.0,
+			x: 1050,
+			y: 80,
+			hidden: true,
+		});
+		numCombo.setNumber(0);
+		scene.append(numCombo);
 
 		// scene.setInterval(() => {
 		// 	numScore.setNext(numScore.nowScore + Math.floor(1000 * g.game.random.generate()));

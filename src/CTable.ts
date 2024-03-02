@@ -145,6 +145,7 @@ https://puyo-euphonic.com/puyo-word-score-calculation
 import { HEIGHT, MARGIN_HN, MARGIN_VT, Panel, PanelColor, PanelState, WIDTH, INPUT_THRESHOLD, DELTA_L, DELTA_T } from './CPanel';
 import { ASPECT_RATIO, Random } from "./define";
 import { Dir, Input } from './CInput';
+import { Number } from './CNumber';
 
 // *****************************
 // 定数
@@ -238,12 +239,12 @@ const TableColor: number[] = [
 	0, 0, 3, 6, 12, 24
 ];
 
-
-
 /**
  * テーブルクラス
  */
 export class Table extends g.E {
+	// シーン
+	public scene: g.Scene;
 	// テーブル状態
 	public tState: TableState;
 	// 入力パネル
@@ -258,8 +259,10 @@ export class Table extends g.E {
 	private rectSelected: g.FilledRect;
 	// 消去用配列
 	private eraseArray: number[] = new Array<number>(ROWS * COLS);
-	/** 変更前配列 */
-	private before: number[] = new Array<number>(ROWS * COLS);
+	// コンボ(連鎖用)
+	private combo: number = 0;
+	// 点数用
+	private score: Number;
 
 	/**
 	 * 行と列からパネル配列のインデックスを取得する
@@ -275,12 +278,16 @@ export class Table extends g.E {
 	 * テーブルクラスの生成
 	 * @param param
 	 */
-	constructor(scene: g.Scene, random: g.RandomGenerator) {
+	constructor(scene: g.Scene, random: g.RandomGenerator, _score: Number) {
 		super({ scene, x: TABLE_L, y: TABLE_T, });
+		// シーン
+		this.scene = scene;
 		// テーブル状態
 		this.tState = TableState.waiting;
 		// ランダムクラス
 		this.random = new Random(random);
+		// スコア
+		this.score = _score;
 		// 入力値
 		this.input = new Input();
 		// 背景の追加
@@ -294,8 +301,6 @@ export class Table extends g.E {
 		const pane: g.Pane = this.makePane(scene);
 		// パネルの追加
 		this.makePanels(scene);
-		// beforeテーブルの設定
-		this.setBefore();
 		// パネルイベントの追加
 		this.addEvent(scene);
 		// 消去配列の初期化 ※ES6ではArray.prototype.fill()使えず
@@ -319,13 +324,17 @@ export class Table extends g.E {
 		this.append(pane);
 	}
 
+	public getCombo(): number {
+		return this.combo;
+	}
+
 	/**
 	 * イベント追加
 	 * @param {g.Scene} scene シーン
 	 */
 	private addEvent(scene: g.Scene): void {
-		let flgTest: boolean = true;
 		let flgTest2: boolean = true;
+		let isCalcPoint: boolean = true;
 		// =============================================================
 		// 更新時処理
 		// =============================================================
@@ -334,55 +343,82 @@ export class Table extends g.E {
 			switch (this.tState) {
 				/** 停止状態 */
 				case TableState.stopping:
+					// 補充処理
+					this.panelFilling();
 					// 消去用配列のセット・あればtrue
 					if (this.checkErase()) {
 						console.log("消去処理に入ります");
 						this.tState = TableState.erasing;
 					} else {
 						/** 連鎖の終了 */
+						this.combo = 0;
 						this.tState = TableState.waiting;
 					}
 					break;
 				/** 消去処理状態 */
 				case TableState.erasing:
-					// 盤面得点計算
-					console.log("得点計算********************************");
-					flgTest = false;
-					// 消去配列の探査
-					let erase: number = 0;		// 消した数
-					let chain: number = 0;		// 連結ボーナス数
-					let bitColor: number = 0;		// 同時消しした色数(bit)
-					this.eraseArray.forEach((v) => {
-						erase += (v & 7) ? 1 : 0;
-						chain += TableChain[(v & 0o70) >> 3];
-						chain += TableChain[(v & 0o700) >> 6];
-						bitColor |= v > 0 ? 1 << (v & 7) - 1 : 0;
-					});
-					console.log("ビット色：" + bitColor);
-					// 色数の取得
-					let color: number = 0;
-					for (; bitColor != 0; bitColor &= bitColor - 1) {
-						color++;
+					// 得点計算
+					if (isCalcPoint) {
+						const point = this.calcPoint();
+						console.log("取得ポイント：" + point);
+						this.score.setNext(this.score.nowScore + point);
+						this.debug();
+						switch (this.combo) {
+							case 1:
+								this.scene.asset.getAudioById("nc301255_C4").play();
+								break;
+							case 2:
+								this.scene.asset.getAudioById("nc301255_D4").play();
+								break;
+							case 3:
+								this.scene.asset.getAudioById("nc301255_E4").play();
+								break;
+							case 4:
+								this.scene.asset.getAudioById("nc301255_F4").play();
+								break;
+							case 5:
+								this.scene.asset.getAudioById("nc301255_G4").play();
+								break;
+							case 6:
+								this.scene.asset.getAudioById("nc301255_A4").play();
+								break;
+							case 7:
+								this.scene.asset.getAudioById("nc301255_B4").play();
+								break;
+							default:
+								this.scene.asset.getAudioById("nc302159").play();
+								break;
+						}
+						this.scene.asset.getAudioById("nc184298").play().changeVolume(0.8);
+						isCalcPoint = false;
 					}
-					//
-					console.log(`消し[${erase}],ボ連[${chain}],ボ色[${TableColor[color]}]`)
-					this.debug();
 					// 消去アニメーション
 					shouldChanging = true;
-					for (let i = 0; i < this.eraseArray.length; i++) {
-						// 消すブロックがある場合
-						if (this.eraseArray[i] & 7) {
-							// 消去配列の消去
-							this.eraseArray[i] = 0;
-							// 画像の消去
-							this.panels[i].animErase(shouldChanging);
-							shouldChanging = false;
+					for (let c = 0; c < COLS; c++) {
+						let flgErasing: boolean = false;
+						for (let r = 0; r < ROWS2; r++) {
+							const i = Table.getIdxToRowCol(r, c);
+							if (r < ROWS) {
+								// 消すブロックがある場合
+								if (this.eraseArray[i] & 7) {
+									flgErasing = true;
+									// 消去配列の消去
+									this.eraseArray[i] = 0;
+									// 画像の消去
+									this.panels[i].animErase(shouldChanging);
+									shouldChanging = false;
+								}
+							}
+							if (flgErasing) {
+								this.panels[i].pState = PanelState.falling;
+							}
 						}
 					}
 					this.tState = TableState.waiting;
 					break;
 				/** 落下処理 */
 				case TableState.falling:
+					isCalcPoint = true;
 					console.log("落ちる処理に来ました");
 					shouldChanging = true;
 					for (let c = 0; c < COLS; c++) {
@@ -390,7 +426,8 @@ export class Table extends g.E {
 						for (let r = 0; r < ROWS2; r++) {
 							const i = Table.getIdxToRowCol(r, c);
 							//
-							if (this.panels[i].frameNumber === 0) {
+							if (this.panels[i].frameNumber === PanelColor.none) {
+								this.panels[i].pState = PanelState.falling;
 								cntSpace++;
 							} else {
 								if (cntSpace > 0) {
@@ -405,13 +442,16 @@ export class Table extends g.E {
 							}
 						}
 						// 補充処理
-						for (let r = ROWS2 - 1; r >= ROWS2 - cntSpace; r--) {
-							const i = Table.getIdxToRowCol(r, c);
-							this.panels[i].frameNumber = this.random.randRange(1, PanelColor.colors + 1);
-							this.panels[i].modified();
-						}
+						// for (let r = ROWS2 - 1; r >= ROWS2 - cntSpace; r--) {
+						// 	const i = Table.getIdxToRowCol(r, c);
+						// 	this.panels[i].frameNumber = this.random.randRange(1, PanelColor.colors + 1);
+						// 	this.panels[i].modified();
+						// }
 					}
 					this.tState = TableState.waiting;
+					break;
+				/** 待機処理 */
+				case TableState.waiting:
 					break;
 			}
 		}, this);
@@ -421,6 +461,57 @@ export class Table extends g.E {
 		this.onPointDown.add((ev: g.PointDownEvent) => {
 			this.debug();
 		});
+	}
+
+	/**
+	 * 充填処理
+	 */
+	private panelFilling(): void {
+		for (let c = 0; c < COLS; c++) {
+			for (let r = ROWS2 - 1; r >= ROWS; r--) {
+				const i = Table.getIdxToRowCol(r, c);
+				if (this.panels[i].frameNumber === PanelColor.none) {
+					this.panels[i].frameNumber = this.random.randRange(1, PanelColor.colors + 1);
+					this.panels[i].modified();
+					this.panels[i].pState = PanelState.stopping;
+				} else {
+					break;
+				}
+			}
+		}
+	}
+
+	/**
+	 * 点数計算
+	 */
+	private calcPoint(): number {
+		console.log("得点計算********************************");
+		// 消去配列の探査
+		let erase: number = 0;		// 消した数
+		let chain: number = 0;		// 連結ボーナス数
+		let bitColor: number = 0;		// 同時消しした色数(bit)
+		this.eraseArray.forEach((v) => {
+			erase += (v & 7) ? 1 : 0;
+			chain += TableChain[(v & 0o70) >> 3];
+			chain += TableChain[(v & 0o700) >> 6];
+			bitColor |= v > 0 ? 1 << (v & 7) - 1 : 0;
+		});
+		console.log("ビット色：" + bitColor);
+		// 色数の取得
+		let color: number = 0;
+		for (; bitColor != 0; bitColor &= bitColor - 1) {
+			color++;
+		}
+		//
+		let bonus: number = 0;
+		if (erase > 0) {
+			this.combo++;
+			console.log(`消し[${erase}],ボ連[${TableCombo[this.combo - 1]}],ボ結[${chain}],ボ色[${TableColor[color]}]`)
+			// ボーナスの計算
+			bonus = TableCombo[this.combo - 1] + chain + TableColor[color];
+			bonus = (bonus === 0) ? 1 : bonus;
+		}
+		return erase * 10 * bonus;
 	}
 
 	public isFalling(): boolean {
@@ -514,7 +605,6 @@ export class Table extends g.E {
 			this.panels[idx].pState === PanelState.stopping &&
 			this.panels[idx].frameNumber !== PanelColor.none
 		);
-
 	}
 
 	public dataSwap(src: number, dst: number): void {
@@ -619,16 +709,20 @@ export class Table extends g.E {
 			this.input.dst = { idx: -1, row: -1, col: -1 };
 			// 入力移動先の設定
 			if (this.input.srcIdx != -1) {
-				if (Math.abs(ev.startDelta.x) >= INPUT_THRESHOLD) {
-					if (ev.startDelta.x >= INPUT_THRESHOLD && this.input.srcCol < COLS - 1) {
-						// 右に入力され、一番右端ではない場合
-						if (this.canMovePanel(this.input.srcIdx + 1)) {
-							this.input.dstToDir(Dir.right);
-						}
-					} else if (ev.startDelta.x <= -INPUT_THRESHOLD && this.input.srcCol > 0) {
-						// 左に入力され、一番左端ではない場合
-						if (this.canMovePanel(this.input.srcIdx - 1)) {
-							this.input.dstToDir(Dir.left);
+				if (Math.abs(ev.startDelta.x) >= Math.abs(ev.startDelta.y)) {
+					if (Math.abs(ev.startDelta.x) >= INPUT_THRESHOLD) {
+						if (ev.startDelta.x >= INPUT_THRESHOLD && this.input.srcCol < COLS - 1) {
+							// 右に入力され、一番右端ではない場合
+							if (this.canMovePanel(this.input.srcIdx + 1)) {
+								this.input.dstToDir(Dir.right);
+							}
+						} else if (ev.startDelta.x <= -INPUT_THRESHOLD && this.input.srcCol > 0) {
+							// 左に入力され、一番左端ではない場合
+							if (this.canMovePanel(this.input.srcIdx - 1)) {
+								this.input.dstToDir(Dir.left);
+							}
+						} else {
+							console.log("横入力エラー： x:" + ev.startDelta.x + ", sCol:" + this.input.srcCol);
 						}
 					}
 				} else if (Math.abs(ev.startDelta.y) >= INPUT_THRESHOLD) {
@@ -642,15 +736,17 @@ export class Table extends g.E {
 						if (this.canMovePanel(this.input.srcIdx + COLS)) {
 							this.input.dstToDir(Dir.up);
 						}
+					} else {
+						console.log("縦入力エラー： y:" + ev.startDelta.y + ", sRow:" + this.input.srcRow);
 					}
+				} else {
+					console.log("入力エラー：INPUT＿THRESHOLD以下 startDelta(" + ev.startDelta.x + "," + ev.startDelta.y + ")");
 				}
 				// 状態の更新
 				if (this.input.dstIdx != -1) {
 					// 入力があり(成立する)、２つが動かせる場合
 					if (this.isNormalInput(this.input) && this.canMovePanels(this.input)) {
-						// // ※配列のスワップを先に処理
-						// this.dataSwap(this.input.srcIdx, this.input.dstIdx);
-						// 移動先パネルのアニメーション 向きを反転させて処理
+						// 移動先パネルのアニメーション
 						this.panels[this.input.srcIdx].animSwap(this.input, this.input.dir, false);
 						// 移動元パネルのアニメーション 向きを反転させて処理
 						this.panels[this.input.dstIdx].animSwap(this.input, this.input.dirInvert, true);
@@ -661,15 +757,6 @@ export class Table extends g.E {
 			}
 		}, this);
 		return this.back;
-	}
-
-	private setBefore(): void {
-		// スワップ中は２つのパネルの位置の数値を０にする
-		// 消去中は消去するパネル...を０にする
-		// 落下中は下から数えて消去状態のより上は全て０にする
-		for (let i = 0; i < ROWS * COLS; i++) {
-			this.before[i] = this.panels[i].frameNumber;
-		}
 	}
 
 	/**
@@ -728,13 +815,13 @@ export class Table extends g.E {
 		console.log(`状態：${cState[this.tState]}`);
 		console.log(`入力：(${this.input.srcIdx},${this.input.dstIdx})`)
 		console.log("色：");
-		for (let i = 0; i < 36; i++) {
+		for (let i = 0; i < ROWS * COLS; i++) {
 			s += `${("0" + i).slice(-2)}:${cColor[this.panels[i].frameNumber]}, `;
 			if (i % COLS === COLS - 1) {
 				console.log(s);
 				s = "";
 			}
-		};
+		}
 		console.log("座標：");
 		for (let i = 0; i < ROWS2 * COLS; i++) {
 			s += `${("00" + i).slice(-3)}: (${("0" + this.panels[i].x.toString(16)).slice(-2)},${("00" + this.panels[i].y.toString(16)).slice(-3)}), `;

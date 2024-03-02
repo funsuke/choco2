@@ -18,7 +18,7 @@ export const HEIGHT: number = 116;
 export const MARGIN_HN: number = 128;
 export const MARGIN_VT: number = 116;
 // 入力閾値
-export const INPUT_THRESHOLD: number = 50;
+export const INPUT_THRESHOLD: number = 8;
 // 移動値
 export const DELTA_L: number = 5;
 export const DELTA_T: number = 2;
@@ -157,9 +157,9 @@ export class Panel extends g.FrameSprite {
 					console.log(`    dstIdx : ${dstIdx}`);
 					this.table.dataSwap(srcIdx, dstIdx);
 					// テーブル状態
-					if (this.table.isFalling()) {
-						this.table.tState = TableState.waiting;
-						console.log(`    waiting!`);
+					if (this.table.tState === TableState.falling) {
+						// this.table.tState = TableState.waiting;
+						// console.log(`    waiting!`);
 					} else {
 						this.table.tState = TableState.stopping;
 						console.log(`    stopping!`);
@@ -213,6 +213,7 @@ export class Panel extends g.FrameSprite {
 			anchorY: 0.5,
 			x: TABLE_L + DELTA_L * 2 + this.x,
 			y: TABLE_T + DELTA_T * 2 + this.y,
+			interval: g.game.fps * 1.5,
 			loop: false,
 		});
 		/** アニメーション開始 */

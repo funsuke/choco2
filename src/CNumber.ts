@@ -56,7 +56,7 @@ export class Number extends g.E {
 	};
 	//
 	get nowScore(): number {
-		return this.showNum;
+		return (this.showNum > this.nextNum) ? this.showNum : this.nextNum;
 	}
 	//
 	private createEntity(): void {

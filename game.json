@@ -172,7 +172,7 @@
 		"fukidasi2": {
 			"type": "image",
 			"path": "image/fukidasi2.png",
-			"width": 500,
+			"width": 420,
 			"height": 160
 		},
 		"number4": {
@@ -289,6 +289,30 @@
 			"type": "script",
 			"path": "script/CInput.js",
 			"global": true
+		},
+		"nc184298": {
+			"type": "audio",
+			"path": "audio/nc184298",
+			"systemId": "sound",
+			"duration": 1985,
+			"hint": {
+				"extensions": [
+					".m4a",
+					".ogg"
+				]
+			}
+		},
+		"nc302159": {
+			"type": "audio",
+			"path": "audio/nc302159",
+			"systemId": "sound",
+			"duration": 2378,
+			"hint": {
+				"extensions": [
+					".m4a",
+					".ogg"
+				]
+			}
 		}
 	},
 	"moduleMainScripts": {
