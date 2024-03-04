@@ -313,6 +313,60 @@
 					".ogg"
 				]
 			}
+		},
+		"title": {
+			"type": "image",
+			"path": "image/title.png",
+			"width": 480,
+			"height": 360
+		},
+		"nc268748": {
+			"type": "audio",
+			"path": "audio/nc268748",
+			"systemId": "sound",
+			"duration": 2064,
+			"hint": {
+				"extensions": [
+					".m4a",
+					".ogg"
+				]
+			}
+		},
+		"nc190708": {
+			"type": "audio",
+			"path": "audio/nc190708",
+			"systemId": "sound",
+			"duration": 706,
+			"hint": {
+				"extensions": [
+					".m4a",
+					".ogg"
+				]
+			}
+		},
+		"start_sta": {
+			"type": "image",
+			"path": "image/start_sta.png",
+			"width": 420,
+			"height": 160
+		},
+		"start_yoi": {
+			"type": "image",
+			"path": "image/start_yoi.png",
+			"width": 420,
+			"height": 160
+		},
+		"x": {
+			"type": "image",
+			"path": "image/x.png",
+			"width": 64,
+			"height": 64
+		},
+		"end": {
+			"type": "image",
+			"path": "image/end.png",
+			"width": 420,
+			"height": 130
 		}
 	},
 	"moduleMainScripts": {
@@ -323,7 +377,10 @@
 		"nicolive": {
 			"supportedModes": [
 				"ranking"
-			]
+			],
+			"preferredSessionParameters": {
+				"totalTimeLimit": 105
+			}
 		}
 	},
 	"globalScripts": [

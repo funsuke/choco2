@@ -61,12 +61,14 @@
 //      4   12
 //      5   24
 
+// akashic export zip --output game.zip --nicolive -f
 
-
+import tl = require("@akashic-extension/akashic-timeline");
 
 import { Number } from "./CNumber";
 import { Table } from "./CTable";
 import { GameMainParameterObject } from "./parameterObject";
+import { Easing } from "@akashic-extension/akashic-timeline";
 
 const isDebug: boolean = false;
 
@@ -76,17 +78,17 @@ const isDebug: boolean = false;
  */
 export function main(param: GameMainParameterObject): void {
 	// アセットID
-	const assetIllust: string[] = ["bg", "choco", "chocola", "area"];
+	const assetIllust: string[] = ["bg", "choco", "chocola", "title"];
 	const assetUI: string[] = ["number_w", "number_p", "alarm", "point",
-		"number4", "fukidasi2"];
-	const assetPanel: string[] = ["block", "block2", "blk_back", "blk_back2"];
+		"number4", "fukidasi2", "start_yoi", "start_sta", "x", "end"];
+	const assetPanel: string[] = ["block2", "blk_back2"];
 	const assetAnim: string[] = [
 		"chocola_anim_b", "chocola_anim_g", "chocola_anim_o", "chocola_anim_r", "chocola_anim_w"
 	];
 	const assetSE: string[] = [
 		"nc301255_C4", "nc301255_D4", "nc301255_E4",
-		"nc301255_F4", "nc301255_G4", "nc301255_A4",
-		"nc301255_B4", "nc301255_C5", "nc274835", "nc274836", "nc184298", "nc302159"];
+		"nc301255_F4", "nc301255_G4", "nc301255_A4", "nc301255_B4",
+		"nc274835", "nc274836", "nc184298", "nc302159", "nc190708"];
 	const assetBGM: string[] = ["nc289960"];
 	// シーン
 	const scene = new g.Scene({
@@ -101,21 +103,20 @@ export function main(param: GameMainParameterObject): void {
 			...assetBGM],
 	});
 	// 時間の設定
-	let time = 60; // 制限時間
-	if (param.sessionParameter.totalTimeLimit) {
-		time = param.sessionParameter.totalTimeLimit; // セッションパラメータで制限時間が指定されたらその値を使用します
-	}
+	let time = 90; // 制限時間
+	// if (param.sessionParameter.totalTimeLimit) {
+	// 	time = param.sessionParameter.totalTimeLimit; // セッションパラメータで制限時間が指定されたらその値を使用します
+	// }
 	// 市場コンテンツのランキングモードでは、g.game.vars.gameState.score の値をスコアとして扱います
 	g.game.vars.gameState = { score: 0 };
 	// =============================================================
 	// シーン読み込み時処理
 	// =============================================================
+	let isStartGame: boolean = false;
 	scene.onLoad.add(() => {
 		/** BGM再生 */
 		if (!isDebug) {
-			scene.asset.getAudioById("nc289960").play().changeVolume(0.10);
-			// スタート音
-			scene.asset.getAudioById("nc274835").play();
+			scene.asset.getAudioById("nc289960").play().changeVolume(0.1);
 		}
 
 		/** 背景の生成追加 */
@@ -180,6 +181,40 @@ export function main(param: GameMainParameterObject): void {
 		});
 		scene.append(numScore);
 
+		/** 得点計算用 */
+		const e = new g.E({ scene, tag: "calc" });
+		const numErase = new Number({
+			scene: scene,
+			assetId: "number_p",
+			maxDigit: 3,
+			align: "right",
+			pitch: 40,
+			anchorX: 1.0,
+			x: g.game.width - 200,
+			y: g.game.height - 128,
+			tag: "erase",
+		});
+		const x = new g.Sprite({
+			scene: scene,
+			src: scene.asset.getImageById("x"),
+			x: g.game.width - 200,
+			y: g.game.height - 128,
+		});
+		const numBonus = new Number({
+			scene: scene,
+			assetId: "number_p",
+			maxDigit: 3,
+			pitch: 40,
+			x: g.game.width - 200 + 64,
+			y: g.game.height - 128,
+			tag: "bonus",
+		});
+		e.hide();
+		e.append(numErase);
+		e.append(x);
+		e.append(numBonus);
+		scene.append(e);
+
 		/** テーブルクラスの生成 */
 		const table = new Table(scene, param.random, numScore);
 		scene.append(table);
@@ -218,13 +253,76 @@ export function main(param: GameMainParameterObject): void {
 		numCombo.setNumber(0);
 		scene.append(numCombo);
 
-		// scene.setInterval(() => {
-		// 	numScore.setNext(numScore.nowScore + Math.floor(1000 * g.game.random.generate()));
-		// }, 5000);
+		/** 用意、スタート */
+		const sta_yoi = new g.Sprite({
+			scene: scene,
+			src: scene.asset.getImageById("start_yoi"),
+			x: 826,
+			y: 80,
+			hidden: true,
+		});
+		scene.append(sta_yoi);
+		const sta_sta = new g.Sprite({
+			scene: scene,
+			src: scene.asset.getImageById("start_sta"),
+			x: 826,
+			y: 80,
+			hidden: true,
+		});
+		scene.append(sta_sta);
+		new tl.Timeline(scene).create(sta_yoi)
+			.wait(4000).call(() => {
+				sta_yoi.show();
+			})
+			.wait(1000).call(() => {
+				sta_yoi.hide();
+				sta_sta.show();
+			})
+			.wait(1000).call(() => {
+				sta_sta.hide();
+			});
 
-		// -------------------------------------------------------------
-		// 連鎖
-		// -------------------------------------------------------------
+		/** しゅーりょー */
+		const end = new g.Sprite({
+			scene: scene,
+			src: scene.asset.getImageById("end"),
+			x: 826,
+			y: 80,
+			hidden: true,
+		});
+		scene.append(end);
+
+		/** タイトル */
+		const title = new g.Sprite({
+			scene: scene,
+			src: scene.asset.getImageById("title"),
+			scaleX: 2.0,
+			scaleY: 2.0,
+			anchorX: 0.5,
+			anchorY: 0.5,
+			x: g.game.width / 2,
+			y: g.game.height / 2,
+		});
+		new tl.Timeline(scene).create(title)
+			.fadeOut(3000, Easing.easeInCirc)
+			.call(() => {
+				// スタート音
+				scene.asset.getAudioById("nc274835").play();
+			})
+			.wait(2000).call(() => {
+				isStartGame = true;
+			});
+		scene.append(title);
+
+		// 点滅用
+		const sprFG = new g.FilledRect({
+			scene: scene,
+			cssColor: "#ff6666",
+			width: g.game.width,
+			height: g.game.height,
+			opacity: 0.0,
+		});
+		scene.append(sprFG);
 
 		// -------------------------------------------------------------
 		// 残り時間
@@ -235,38 +333,30 @@ export function main(param: GameMainParameterObject): void {
 			size: 48
 		});
 
-		// const lbl1: g.Label = new g.Label({
-		// 	scene: scene,
-		// 	font: font,
-		// 	textColor: "black",
-		// 	text: "あいうえお",
-		// 	width: 300,
-		// 	height: 50,
-		// 	anchorX: 1.0,
-		// 	anchorY: 0.5,
-		// 	x: g.game.width,
-		// 	y: g.game.height / 2,
-		// });
-		// scene.append(lbl1);
-
-		// テスト
-		scene.onPointDownCapture.add(() => {
-			// 制限時間以内であればタッチ1回ごとにSCOREに+1します
-			if (time >= 0) {
-				g.game.vars.gameState.score++;
-			}
-			table.debug();
-		});
 		// =============================================================
 		// 更新ハンドラと更新処理
 		// =============================================================
 		const updateHandler = (): void => {
 			if (time <= 0) {
-				scene.onUpdate.remove(updateHandler); // カウントダウンを止めるためにこのイベントハンドラを削除します
+				isStartGame = false;
+				// 終了音
+				end.show();
+				scene.asset.getAudioById("nc274836").play();
+				// 点滅終了
+				sprFG.opacity = 0.0;
+				sprFG.modified();
+				// イベントハンドラ削除
+				scene.onUpdate.remove(updateHandler);
 			}
 			// カウントダウン処理
-			time -= 1 / g.game.fps;
-			numTime.setNumber(Math.ceil(time));
+			if (isStartGame) {
+				time -= 1 / g.game.fps;
+				numTime.setNumber(Math.ceil(time));
+				if (time <= 5) {
+					sprFG.opacity = (time - Math.floor(time)) / 3;
+					sprFG.modified();
+				}
+			}
 		};
 		scene.onUpdate.add(updateHandler);
 	});

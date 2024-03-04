@@ -142,6 +142,7 @@ https://puyo-euphonic.com/puyo-word-score-calculation
 //     18  240
 //     19  256
 //     20以降 256で固定
+import tl = require("@akashic-extension/akashic-timeline");
 import { HEIGHT, MARGIN_HN, MARGIN_VT, Panel, PanelColor, PanelState, WIDTH, INPUT_THRESHOLD, DELTA_L, DELTA_T } from './CPanel';
 import { ASPECT_RATIO, Random } from "./define";
 import { Dir, Input } from './CInput';
@@ -361,35 +362,10 @@ export class Table extends g.E {
 					if (isCalcPoint) {
 						const point = this.calcPoint();
 						console.log("取得ポイント：" + point);
-						this.score.setNext(this.score.nowScore + point);
+						g.game.vars.gameState.score = this.score.nowScore + point;
+						this.score.setNext(g.game.vars.gameState.score);
 						this.debug();
-						switch (this.combo) {
-							case 1:
-								this.scene.asset.getAudioById("nc301255_C4").play();
-								break;
-							case 2:
-								this.scene.asset.getAudioById("nc301255_D4").play();
-								break;
-							case 3:
-								this.scene.asset.getAudioById("nc301255_E4").play();
-								break;
-							case 4:
-								this.scene.asset.getAudioById("nc301255_F4").play();
-								break;
-							case 5:
-								this.scene.asset.getAudioById("nc301255_G4").play();
-								break;
-							case 6:
-								this.scene.asset.getAudioById("nc301255_A4").play();
-								break;
-							case 7:
-								this.scene.asset.getAudioById("nc301255_B4").play();
-								break;
-							default:
-								this.scene.asset.getAudioById("nc302159").play();
-								break;
-						}
-						this.scene.asset.getAudioById("nc184298").play().changeVolume(0.8);
+						this.playEraseSound();
 						isCalcPoint = false;
 					}
 					// 消去アニメーション
@@ -463,6 +439,36 @@ export class Table extends g.E {
 		});
 	}
 
+	private playEraseSound(): void {
+		switch (this.combo) {
+			case 1:
+				this.scene.asset.getAudioById("nc301255_C4").play().changeVolume(0.5);
+				break;
+			case 2:
+				this.scene.asset.getAudioById("nc301255_D4").play().changeVolume(0.5);
+				break;
+			case 3:
+				this.scene.asset.getAudioById("nc301255_E4").play().changeVolume(0.5);
+				break;
+			case 4:
+				this.scene.asset.getAudioById("nc301255_F4").play().changeVolume(0.5);
+				break;
+			case 5:
+				this.scene.asset.getAudioById("nc301255_G4").play().changeVolume(0.5);
+				break;
+			case 6:
+				this.scene.asset.getAudioById("nc301255_A4").play().changeVolume(0.5);
+				break;
+			case 7:
+				this.scene.asset.getAudioById("nc301255_B4").play().changeVolume(0.5);
+				break;
+			default:
+				this.scene.asset.getAudioById("nc302159").play().changeVolume(0.4);
+				break;
+		}
+		this.scene.asset.getAudioById("nc184298").play().changeVolume(0.8);
+	}
+
 	/**
 	 * 充填処理
 	 */
@@ -511,6 +517,41 @@ export class Table extends g.E {
 			bonus = TableCombo[this.combo - 1] + chain + TableColor[color];
 			bonus = (bonus === 0) ? 1 : bonus;
 		}
+		// 場面得点表示
+		if (erase > 0) {
+			this.scene.children.forEach((v) => {
+				if (v.tag === "calc") {
+					v.children?.forEach((v) => {
+						if (v.tag === "erase") {
+							(v as Number).setNumber(erase * 10);
+						} else if (v.tag === "bonus") {
+							(v as Number).setNumber(bonus);
+						}
+					});
+					v.y = 0;
+					v.opacity = 1.0;
+					v.show();
+					v.modified();
+					new tl.Timeline(this.scene).create(v)
+						.moveBy(0, -64, 1000)
+						.con()
+						.fadeOut(1000)
+						.call(() => {
+							v.hide();
+						});
+				}
+			});
+		}
+
+		// if (erase > 0) {
+		// 	this.numErase.children?.forEach((v) => {
+		// 		if (v.tag === "erase") {
+		// 			(v as Number).setNumber(erase * 10);
+		// 		} else if (v.tag === "bonus") {
+		// 			(v as Number).setNumber(bonus);
+		// 		}
+		// 	});
+		// }
 		return erase * 10 * bonus;
 	}
 
@@ -746,6 +787,8 @@ export class Table extends g.E {
 				if (this.input.dstIdx != -1) {
 					// 入力があり(成立する)、２つが動かせる場合
 					if (this.isNormalInput(this.input) && this.canMovePanels(this.input)) {
+						// 移動音
+						this.scene.asset.getAudioById("nc190708").play().changeVolume(0.3);
 						// 移動先パネルのアニメーション
 						this.panels[this.input.srcIdx].animSwap(this.input, this.input.dir, false);
 						// 移動元パネルのアニメーション 向きを反転させて処理
