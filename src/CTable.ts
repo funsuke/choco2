@@ -512,9 +512,9 @@ export class Table extends g.E {
 		let bonus: number = 0;
 		if (erase > 0) {
 			this.combo++;
-			console.log(`消し[${erase}],ボ連[${TableCombo[this.combo - 1]}],ボ結[${chain}],ボ色[${TableColor[color]}]`)
+			console.log(`消し[${erase}],ボ連[${TableCombo[Math.min(this.combo - 1, 19)]}],ボ結[${chain}],ボ色[${TableColor[color]}]`)
 			// ボーナスの計算
-			bonus = TableCombo[this.combo - 1] + chain + TableColor[color];
+			bonus = TableCombo[Math.min(this.combo - 1, 19)] + chain + TableColor[color];
 			bonus = (bonus === 0) ? 1 : bonus;
 		}
 		// 場面得点表示
@@ -533,9 +533,9 @@ export class Table extends g.E {
 					v.show();
 					v.modified();
 					new tl.Timeline(this.scene).create(v)
-						.moveBy(0, -64, 1000)
-						.con()
-						.fadeOut(1000)
+						.moveBy(0, -16, 2000)
+						// .con()
+						// .fadeOut(1000)
 						.call(() => {
 							v.hide();
 						});

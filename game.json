@@ -172,7 +172,7 @@
 		"fukidasi2": {
 			"type": "image",
 			"path": "image/fukidasi2.png",
-			"width": 420,
+			"width": 500,
 			"height": 160
 		},
 		"number4": {
@@ -320,18 +320,6 @@
 			"width": 480,
 			"height": 360
 		},
-		"nc268748": {
-			"type": "audio",
-			"path": "audio/nc268748",
-			"systemId": "sound",
-			"duration": 2064,
-			"hint": {
-				"extensions": [
-					".m4a",
-					".ogg"
-				]
-			}
-		},
 		"nc190708": {
 			"type": "audio",
 			"path": "audio/nc190708",
@@ -366,7 +354,19 @@
 			"type": "image",
 			"path": "image/end.png",
 			"width": 420,
-			"height": 130
+			"height": 160
+		},
+		"chocola_anim": {
+			"type": "image",
+			"path": "image/chocola_anim.png",
+			"width": 768,
+			"height": 768
+		},
+		"fukidasi2-Ryzen": {
+			"type": "image",
+			"path": "image/fukidasi2-Ryzen.png",
+			"width": 420,
+			"height": 160
 		}
 	},
 	"moduleMainScripts": {
